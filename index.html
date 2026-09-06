@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Voicey</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="icon" href="icons/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Voicey">
+
+<style>
+*{box-sizing:border-box}
+:root{
+--bg:#f3f4f6;--card:#fff;--text:#111827;--muted:#6b7280;
+--border:#d1d5db;--accent:#2563eb;--btn:#e5e7eb
+}
+[data-theme=dark]{
+--bg:#111827;--card:#1f2937;--text:#f9fafb;--muted:#9ca3af;
+--border:#374151;--accent:#60a5fa;--btn:#374151
+}
+[data-theme=oled]{
+--bg:#000;--card:#050505;--text:#fff;--muted:#aaa;
+--border:#333;--accent:#00e5ff;--btn:#181818
+}
+[data-theme=hc]{
+--bg:#000;--card:#000;--text:#fff;--muted:#fff;
+--border:#fff;--accent:#ffff00;--btn:#000
+}
+html,body{margin:0;min-height:100%}
+body{
+margin:0;background:var(--bg);color:var(--text);
+font-family:Arial,sans-serif;min-height:100vh;
+display:flex;align-items:center;justify-content:center;
+padding:12px
+}
+.app{width:100%;max-width:740px;text-align:center}
+.card{
+position:relative;
+background:var(--card);border:1px solid var(--border);
+border-radius:22px;padding:20px;padding-top:60px;
+box-shadow:0 10px 35px #0002
+}
+h1{margin:0 0 5px;font-size:clamp(27px,7vw,40px)}
+.sub{color:var(--muted);margin:0 0 18px}
+textarea{
+width:100%;height:200px;resize:vertical;padding:15px;
+border:2px solid var(--border);border-radius:15px;
+background:var(--bg);color:var(--text);
+font-size:16px;outline:none
+}
+textarea:focus{border-color:var(--accent)}
+select{
+width:100%;padding:12px;border-radius:12px;
+border:1px solid var(--border);
+background:var(--bg);color:var(--text)
+}
+.controls{
+display:grid;grid-template-columns:repeat(2,1fr);
+gap:12px;margin-top:14px
+}
+.control{text-align:left}
+.control label{
+display:block;color:var(--muted);
+font-size:13px;margin-bottom:5px
+}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.row{
+display:flex;gap:8px;flex-wrap:wrap;
+justify-content:center;margin-top:13px
+}
+button{
+border:1px solid var(--border);
+background:var(--btn);color:var(--text);
+border-radius:12px;padding:11px 14px;
+cursor:pointer;font-weight:600
+}
+button:hover{filter:brightness(.92)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{
+background:var(--accent);color:#fff;
+border-color:var(--accent)
+}
+.download{
+background:#16a34a;color:#fff;
+border-color:#16a34a
+}
+.wav{
+background:#0891b2;color:#fff;
+border-color:#0891b2
+}
+.ogg{
+background:#7c3aed;color:#fff;
+border-color:#7c3aed
+}
+.stats{
+display:flex;justify-content:space-between;
+color:var(--muted);font-size:13px;margin-top:8px
+}
+.status{
+min-height:22px;margin-top:13px;
+color:var(--accent);font-weight:600
+}
+.progress{
+width:100%;height:7px;border-radius:9px;
+background:var(--border);overflow:hidden;
+margin-top:8px;display:none
+}
+.progress div{
+width:0;height:100%;background:var(--accent);
+transition:width .2s
+}
+.player{
+display:none;text-align:left;margin-top:15px;
+padding:14px;border:1px solid var(--border);
+border-radius:15px;background:var(--bg)
+}
+.player strong{display:block;margin-bottom:5px}
+.player small{display:block;color:var(--muted);margin-bottom:10px}
+.player audio{width:100%}
+.theme-toggle{
+position:absolute;top:14px;right:14px;
+width:42px;height:42px;min-width:0;flex:none;border-radius:50%;
+display:flex;align-items:center;justify-content:center;
+font-size:19px;line-height:1;cursor:pointer;padding:0;
+border:2px solid var(--accent);background:var(--card);color:var(--text);
+box-shadow:0 2px 8px #0004;
+transition:transform .15s ease,filter .15s ease
+}
+.theme-toggle:hover{filter:brightness(.92)}
+.theme-toggle:active{transform:scale(.92)}
+.note{
+font-size:11px;color:var(--muted);
+margin-top:9px;line-height:1.4
+}
+footer{margin-top:14px;color:var(--muted);font-size:12px}
+@media(max-width:520px){
+.card{padding:16px;padding-top:56px}
+.controls{grid-template-columns:1fr}
+textarea{height:215px}
+button{flex:1;min-width:95px}
+}
+</style>
+</head>
+
+<body>
+<main class="app">
+<section class="card">
+
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Change theme" title="Change theme">☀</button>
+
+<h1>🔊 Voicey</h1>
+<p class="sub">
+Generate clear speech and save it in multiple formats.
+</p>
+
+<textarea id="text"
+placeholder="Enter or paste your text here..."></textarea>
+
+<div class="stats">
+<span id="words">0 words</span>
+<span id="chars">0 characters</span>
+</div>
+
+<div style="margin-top:13px">
+<select id="voice">
+<option value="af_heart">Heart — US Female</option>
+<option value="af_bella">Bella — US Female</option>
+<option value="af_nicole">Nicole — US Female</option>
+<option value="af_sarah">Sarah — US Female</option>
+<option value="af_sky">Sky — US Female</option>
+<option value="am_adam">Adam — US Male</option>
+<option value="am_michael">Michael — US Male</option>
+<option value="am_onyx">Onyx — US Male</option>
+<option value="bf_emma">Emma — UK Female</option>
+<option value="bf_isabella">Isabella — UK Female</option>
+<option value="bm_george">George — UK Male</option>
+<option value="bm_lewis">Lewis — UK Male</option>
+<option value="hm_omega">Omega — Hindi Male</option>
+<option value="hm_psi">Psi — Hindi Male</option>
+</select>
+</div>
+
+<div class="controls">
+
+<div class="control">
+<label>Speed: <span id="speedVal">1</span>×</label>
+<input id="speed" type="range"
+min=".5" max="2" step=".05" value="1">
+</div>
+
+<div class="control">
+<label>Volume: <span id="volumeVal">1</span></label>
+<input id="volume" type="range"
+min="0" max="1" step=".05" value="1">
+</div>
+
+</div>
+
+<div class="row">
+<button class="primary" id="play">▶ Play</button>
+<button id="pause">⏸ Pause</button>
+<button id="resume">▶ Resume</button>
+<button id="stop">⏹ Stop</button>
+<button id="clear">Clear</button>
+</div>
+
+<div class="row">
+<button class="primary" id="generate">
+🎵 Generate Speech
+</button>
+</div>
+
+<div class="progress" id="progress">
+<div id="bar"></div>
+</div>
+
+<div class="player" id="player">
+
+<strong>🎧 Generated Audio</strong>
+
+<small id="fileInfo">
+Audio is ready.
+</small>
+
+<audio id="audio" controls></audio>
+
+<div class="row">
+<button class="wav" id="wavBtn">
+⬇ WAV
+</button>
+
+<button class="download" id="mp3Btn">
+⬇ MP3
+</button>
+
+<button class="ogg" id="oggBtn">
+⬇ OGG
+</button>
+</div>
+
+<p class="note">
+WAV is recommended for the clearest lossless audio.
+MP3 and OGG are compressed formats.
+</p>
+
+</div>
+
+<div class="row" id="installRow" style="display:none">
+<button class="primary" id="installBtn">📲 Install App</button>
+</div>
+
+<p class="note" id="iosInstallNote" style="display:none">
+To install: tap the Share icon in Safari's toolbar, then "Add to Home Screen."
+</p>
+
+<div class="status" id="status">Ready</div>
+
+</section>
+
+<footer>
+© Manik Roy <span id="year"></span>. All Rights Reserved.
+</footer>
+</main>
+
+<script type="module">
+
+const $=id=>document.getElementById(id);
+
+const text=$("text");
+const voice=$("voice");
+const speed=$("speed");
+const volume=$("volume");
+const status=$("status");
+const progress=$("progress");
+const bar=$("bar");
+const player=$("player");
+const audio=$("audio");
+
+let samples=null;
+let sampleRate=24000;
+let wavBlob=null;
+let mp3Blob=null;
+let oggBlob=null;
+let audioURL=null;
+let currentTimestamp=null;
+let lastParams=null; // {text, voice, speed} used for the current `samples`
+
+function stats(){
+
+ const s=text.value.trim();
+
+ $("words").textContent=
+  (s?s.split(/\s+/).length:0)+" words";
+
+ $("chars").textContent=
+  text.value.length+" characters";
+}
+
+text.addEventListener("input",stats);
+
+speed.oninput=()=>{
+ $("speedVal").textContent=speed.value;
+};
+
+/* BUGFIX: the volume slider used to only update its own label and never
+   touched audio.volume, so dragging it while a clip was playing did
+   nothing. Now it actually controls playback volume live. */
+volume.oninput=()=>{
+ $("volumeVal").textContent=volume.value;
+ audio.volume=+volume.value;
+};
+
+$("year").textContent=new Date().getFullYear();
+
+const THEME_ORDER=["light","dark","oled","hc"];
+const THEME_ICONS={light:"☀",dark:"🌙",oled:"⬛",hc:"◐"};
+const themeToggle=$("themeToggle");
+
+function setTheme(t){
+ document.documentElement.dataset.theme = t==="light" ? "" : t;
+ localStorage.setItem("tts-theme",t);
+ if(themeToggle) themeToggle.textContent=THEME_ICONS[t]||"☀";
+}
+
+if(themeToggle){
+ themeToggle.onclick=()=>{
+  const current=localStorage.getItem("tts-theme")||"light";
+  const next=THEME_ORDER[(THEME_ORDER.indexOf(current)+1)%THEME_ORDER.length];
+  setTheme(next);
+ };
+}
+
+setTheme(localStorage.getItem("tts-theme")||"light");
+
+/* ---------- TTS WORKER ---------- */
+
+/* BUGFIX: model loading + speech generation used to run directly on the
+   main thread via wasm. wasm inference is synchronous CPU work, and on
+   a phone-class CPU it's slow enough to block the UI thread for a long
+   stretch — the page looks completely frozen (no progress-bar movement,
+   no response to taps) even though it's still working. Moving the model
+   into a Web Worker keeps all of that heavy lifting off the main thread,
+   so the tab stays responsive the whole time. The worker is built from
+   an inline Blob (rather than a separate .js file) so the app stays a
+   single HTML file. */
+const TTS_WORKER_SRC=`
+import { KokoroTTS } from "https://cdn.jsdelivr.net/npm/kokoro-js@1.2.1/dist/kokoro.web.js";
+
+let tts = null;
+
+async function loadTTS(){
+ if(tts) return tts;
+
+ tts = await KokoroTTS.from_pretrained(
+  "onnx-community/Kokoro-82M-v1.0-ONNX",
+  {
+   dtype: "q8",
+   device: "wasm",
+   progress_callback: (data) => postMessage({type:"progress", data})
+  }
+ );
+
+ return tts;
+}
+
+self.onmessage = async (e) => {
+ const msg = e.data;
+
+ try {
+
+  if(msg.type === "load"){
+   await loadTTS();
+   postMessage({type:"ready"});
+  }
+
+  if(msg.type === "generate"){
+   const engine = await loadTTS();
+   const result = await engine.generate(msg.text, {voice: msg.voice, speed: msg.speed});
+   const audio = result.audio;
+   postMessage({type:"result", sampling_rate: result.sampling_rate, audio}, [audio.buffer]);
+  }
+
+ } catch(err) {
+  postMessage({type:"error", message: (err && err.message) || String(err)});
+ }
+};
+`;
+
+let worker=null;
+let ttsReady=false;
+let pendingLoad=null;
+let pendingGenerate=null;
+
+function getWorker(){
+
+ if(worker)return worker;
+
+ const blob=new Blob([TTS_WORKER_SRC],{type:"text/javascript"});
+ const url=URL.createObjectURL(blob);
+
+ worker=new Worker(url,{type:"module"});
+
+ worker.onmessage=(e)=>{
+
+  const msg=e.data;
+
+  if(msg.type==="progress"){
+   if(msg.data && typeof msg.data.progress==="number"){
+    bar.style.width=Math.max(2,Math.min(99,Math.round(msg.data.progress)))+"%";
+   }
+   return;
+  }
+
+  if(msg.type==="ready"){
+   ttsReady=true;
+   if(pendingLoad){pendingLoad.resolve();pendingLoad=null;}
+   return;
+  }
+
+  if(msg.type==="result"){
+   if(pendingGenerate){
+    pendingGenerate.resolve({audio:msg.audio,sampling_rate:msg.sampling_rate});
+    pendingGenerate=null;
+   }
+   return;
+  }
+
+  if(msg.type==="error"){
+   const err=new Error(msg.message);
+   if(pendingLoad){pendingLoad.reject(err);pendingLoad=null;}
+   if(pendingGenerate){pendingGenerate.reject(err);pendingGenerate=null;}
+   return;
+  }
+ };
+
+ worker.onerror=(e)=>{
+  const err=new Error(e.message||"Worker error");
+  if(pendingLoad){pendingLoad.reject(err);pendingLoad=null;}
+  if(pendingGenerate){pendingGenerate.reject(err);pendingGenerate=null;}
+ };
+
+ return worker;
+}
+
+/* ---------- LOAD TTS ---------- */
+
+async function loadTTS(){
+
+ if(ttsReady)return;
+
+ /* Fetching the model weights (and starting a Worker at all) requires
+    a real http/https origin. Opening this file directly (file://) will
+    make this fail before it even leaves the browser, so catch that
+    case with a clear message instead of a confusing error. */
+ if(location.protocol==="file:"){
+  throw new Error(
+   "This app downloads AI model files and runs them in a background worker, which browsers block when a page is opened directly from disk. Serve this file over http/https instead (e.g. a local server or GitHub Pages) and reload."
+  );
+ }
+
+ status.textContent="Loading speech engine...";
+ progress.style.display="block";
+ bar.style.width="2%";
+
+ try{
+
+  await new Promise((resolve,reject)=>{
+   pendingLoad={resolve,reject};
+   getWorker().postMessage({type:"load"});
+  });
+
+ }catch(e){
+
+  console.error(e);
+
+  const networkish=
+   /fetch|network|NetworkError/i.test(e && e.message || "");
+
+  throw new Error(
+   networkish
+    ? "Speech engine could not be loaded: the model files could not be downloaded. Check your internet connection, and make sure nothing (ad blocker, VPN, firewall) is blocking requests to huggingface.co."
+    : "Speech engine could not be loaded."
+  );
+ }
+
+ bar.style.width="100%";
+ status.textContent="Speech engine ready";
+}
+
+function generateOnWorker(value,voiceVal,speedVal){
+
+ return new Promise((resolve,reject)=>{
+  pendingGenerate={resolve,reject};
+  getWorker().postMessage({
+   type:"generate",
+   text:value,
+   voice:voiceVal,
+   speed:+speedVal
+  });
+ });
+}
+
+/* ---------- GENERATE ---------- */
+
+async function generateSpeech(){
+
+ const value=text.value.trim();
+
+ if(!value){
+  status.textContent="Please enter some text first.";
+  return false;
+ }
+
+ try{
+
+  await loadTTS();
+
+  status.textContent="Generating clear speech...";
+  progress.style.display="block";
+  bar.style.width="20%";
+
+  const result=await generateOnWorker(value,voice.value,speed.value);
+
+  samples=result.audio;
+  sampleRate=result.sampling_rate||24000;
+
+  lastParams={
+   text:value,
+   voice:voice.value,
+   speed:speed.value
+  };
+
+  bar.style.width="100%";
+
+  createFiles();
+
+  status.textContent=
+   "✓ Speech generated successfully.";
+
+  player.style.display="block";
+
+  setTimeout(()=>{
+   progress.style.display="none";
+  },800);
+
+  return true;
+
+ }catch(e){
+
+  console.error(e);
+
+  status.textContent=
+   "Generation failed: "+(e.message||"Unknown error");
+
+  progress.style.display="none";
+
+  return false;
+ }
+}
+
+/* ---------- WAV ---------- */
+
+function makeWAV(data,rate){
+
+ const buffer=
+  new ArrayBuffer(44+data.length*2);
+
+ const view=new DataView(buffer);
+
+ function write(pos,str){
+  for(let i=0;i<str.length;i++)
+   view.setUint8(
+    pos+i,str.charCodeAt(i)
+   );
+ }
+
+ write(0,"RIFF");
+
+ view.setUint32(
+  4,36+data.length*2,true
+ );
+
+ write(8,"WAVE");
+ write(12,"fmt ");
+
+ view.setUint32(16,16,true);
+ view.setUint16(20,1,true);
+ view.setUint16(22,1,true);
+ view.setUint32(24,rate,true);
+ view.setUint32(28,rate*2,true);
+ view.setUint16(32,2,true);
+ view.setUint16(34,16,true);
+
+ write(36,"data");
+
+ view.setUint32(
+  40,data.length*2,true
+ );
+
+ let p=44;
+
+ for(let i=0;i<data.length;i++){
+
+  const n=Math.max(
+   -1,Math.min(1,data[i])
+  );
+
+  view.setInt16(
+   p,
+   n<0?n*32768:n*32767,
+   true
+  );
+
+  p+=2;
+ }
+
+ return new Blob(
+  [buffer],
+  {type:"audio/wav"}
+ );
+}
+
+/* ---------- CREATE WAV ---------- */
+
+function createFiles(){
+
+ if(!samples)return;
+
+ wavBlob=makeWAV(samples,sampleRate);
+
+ if(audioURL)
+  URL.revokeObjectURL(audioURL);
+
+ audioURL=
+  URL.createObjectURL(wavBlob);
+
+ audio.src=audioURL;
+ audio.volume=+volume.value;
+
+ /* BUGFIX: previously each download button called timestamp() again
+    at click time, so the filename shown here never matched the file
+    that actually got downloaded. Now one timestamp is generated per
+    "take" and reused for every format until the next generation. */
+ currentTimestamp=timestamp();
+
+ const name=
+  "voicey-"+currentTimestamp;
+
+ $("fileInfo").textContent=
+  name+".wav • "+size(wavBlob.size);
+
+ // A fresh generation invalidates any previously exported mp3/ogg.
+ mp3Blob=null;
+ oggBlob=null;
+}
+
+/* ---------- DOWNLOAD ---------- */
+
+function saveBlob(blob,ext){
+
+ if(!blob){
+
+  status.textContent=
+   "Generate speech first.";
+
+  return;
+ }
+
+ const name=
+  "voicey-"+(currentTimestamp||timestamp())+"."+ext;
+
+ const mimeMap={wav:"audio/wav",mp3:"audio/mpeg",ogg:blob.type||"audio/ogg"};
+
+ /* BUGFIX: the previous version always opened the OS share sheet,
+    but people wanted an actual "choose a folder" save dialog, not a
+    list of apps to share to. A true save-location dialog is only
+    possible via the File System Access API, which currently only
+    exists in desktop Chrome/Edge (no mobile browser supports it —
+    that's a platform limitation, not something this app can add).
+    Use it there; everywhere else, do a plain silent download instead
+    of the share sheet, since that's the more predictable behavior
+    people expect from a "download" button. */
+ if("showSaveFilePicker" in window){
+
+  (async()=>{
+
+   try{
+
+    const handle=await window.showSaveFilePicker({
+     suggestedName:name,
+     types:[{
+      description:ext.toUpperCase()+" audio",
+      accept:{[mimeMap[ext]||blob.type]:["."+ext]}
+     }]
+    });
+
+    const writable=await handle.createWritable();
+
+    await writable.write(blob);
+    await writable.close();
+
+    status.textContent=
+     "✓ "+ext.toUpperCase()+" saved.";
+
+   }catch(e){
+
+    if(e && e.name==="AbortError"){
+     status.textContent="Save cancelled.";
+     return;
+    }
+
+    console.warn("Save dialog failed, falling back to direct download",e);
+    directDownload(blob,name,ext);
+   }
+
+  })();
+
+  return;
+ }
+
+ directDownload(blob,name,ext);
+}
+
+function directDownload(blob,name,ext){
+
+ const url=
+  URL.createObjectURL(blob);
+
+ const a=document.createElement("a");
+
+ a.href=url;
+ a.download=name;
+
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+
+ setTimeout(()=>{
+  URL.revokeObjectURL(url);
+ },5000);
+
+ status.textContent=
+  "✓ "+ext.toUpperCase()+
+  " saved to your browser's Downloads folder.";
+}
+
+function timestamp(){
+
+ return new Date().toISOString()
+  .replace(/[:.]/g,"-");
+}
+
+function size(bytes){
+
+ if(bytes<1024)
+  return bytes+" B";
+
+ if(bytes<1048576)
+  return (bytes/1024).toFixed(1)+" KB";
+
+ return (bytes/1048576).toFixed(2)+" MB";
+}
+
+/* ---------- MP3 ---------- */
+
+async function makeMP3(){
+
+ if(!samples){
+  status.textContent=
+   "Generate speech first.";
+  return;
+ }
+
+ status.textContent=
+  "Preparing MP3 encoder...";
+
+ try{
+
+  if(!window.lamejs){
+
+   await new Promise((resolve,reject)=>{
+
+    const s=document.createElement("script");
+
+    s.src=
+     "https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js";
+
+    s.onload=resolve;
+    s.onerror=reject;
+
+    document.head.appendChild(s);
+   });
+  }
+
+  const encoder=
+   new lamejs.Mp3Encoder(
+    1,sampleRate,192
+   );
+
+  const pcm=
+   new Int16Array(samples.length);
+
+  for(let i=0;i<samples.length;i++){
+
+   const n=Math.max(
+    -1,Math.min(1,samples[i])
+   );
+
+   pcm[i]=
+    n<0?n*32768:n*32767;
+  }
+
+  const chunks=[];
+  const block=1152;
+
+  for(let i=0;i<pcm.length;i+=block){
+
+   const part=
+    pcm.subarray(i,i+block);
+
+   const encoded=
+    encoder.encodeBuffer(part);
+
+   if(encoded.length)
+    chunks.push(new Int8Array(encoded));
+
+   if(i%(block*25)===0){
+
+    bar.style.width=
+     Math.round(
+      i/pcm.length*100
+     )+"%";
+
+    progress.style.display="block";
+
+    await new Promise(r=>setTimeout(r,0));
+   }
+  }
+
+  const end=encoder.flush();
+
+  if(end.length)
+   chunks.push(new Int8Array(end));
+
+  mp3Blob=new Blob(
+   chunks,
+   {type:"audio/mpeg"}
+  );
+
+  saveBlob(mp3Blob,"mp3");
+
+  progress.style.display="none";
+
+ }catch(e){
+
+  console.error(e);
+
+  status.textContent=
+   "MP3 creation failed. WAV is available.";
+  progress.style.display="none";
+ }
+}
+
+/* ---------- OGG / OPUS ---------- */
+
+async function makeOGG(){
+
+ if(!samples){
+
+  status.textContent=
+   "Generate speech first.";
+
+  return;
+ }
+
+ if(!window.MediaRecorder){
+
+  status.textContent=
+   "OGG recording is not supported by this browser.";
+
+  return;
+ }
+
+ const mime=
+  MediaRecorder.isTypeSupported(
+   "audio/ogg;codecs=opus"
+  ) ?
+   "audio/ogg;codecs=opus" :
+   null;
+
+ if(!mime){
+
+  status.textContent=
+   "This browser does not support OGG/Opus.";
+
+  return;
+ }
+
+ try{
+
+  status.textContent="Creating OGG/Opus...";
+
+  const ctx=new AudioContext();
+
+  const buffer=
+   ctx.createBuffer(
+    1,samples.length,sampleRate
+   );
+
+  buffer.copyToChannel(samples,0);
+
+  const destination=
+   ctx.createMediaStreamDestination();
+
+  const source=
+   ctx.createBufferSource();
+
+  source.buffer=buffer;
+  source.connect(destination);
+
+  const recorder=
+   new MediaRecorder(
+    destination.stream,
+    {mimeType:mime}
+   );
+
+  const chunks=[];
+
+  recorder.ondataavailable=e=>{
+   if(e.data.size)
+    chunks.push(e.data);
+  };
+
+  const finished=
+   new Promise(resolve=>{
+    recorder.onstop=resolve;
+   });
+
+  recorder.start();
+  source.start();
+
+  source.onended=()=>{
+   recorder.stop();
+  };
+
+  await finished;
+
+  await ctx.close();
+
+  oggBlob=new Blob(
+   chunks,
+   {type:mime}
+  );
+
+  saveBlob(oggBlob,"ogg");
+
+ }catch(e){
+
+  console.error(e);
+
+  status.textContent=
+   "OGG creation failed. WAV is available.";
+ }
+}
+
+/* ---------- helper: has the audio already been generated for the
+   current text/voice/speed combo? ---------- */
+
+function isCurrent(){
+
+ const value=text.value.trim();
+
+ return !!(
+  samples && lastParams &&
+  lastParams.text===value &&
+  lastParams.voice===voice.value &&
+  lastParams.speed===speed.value
+ );
+}
+
+/* ---------- PLAY ---------- */
+
+/* BUGFIX: Play used to call generateSpeech() unconditionally, so every
+   click re-ran the whole TTS pipeline even to replay audio that was
+   already generated and unchanged. Now it only (re)generates when the
+   text, voice, or speed has actually changed since the last take. */
+$("play").onclick=async()=>{
+
+ let ok=true;
+
+ if(!isCurrent()){
+  ok=await generateSpeech();
+ }
+
+ if(ok){
+
+  audio.currentTime=0;
+
+  try{
+   await audio.play();
+   status.textContent="Speaking...";
+  }catch(e){}
+
+ }
+};
+
+$("pause").onclick=()=>{
+ audio.pause();
+ status.textContent="Paused";
+};
+
+$("resume").onclick=async()=>{
+ try{
+  await audio.play();
+  status.textContent="Speaking...";
+ }catch(e){}
+};
+
+$("stop").onclick=()=>{
+ audio.pause();
+ audio.currentTime=0;
+ status.textContent="Stopped";
+};
+
+/* ---------- GENERATE ---------- */
+
+$("generate").onclick=async()=>{
+
+ $("generate").disabled=true;
+
+ await generateSpeech();
+
+ $("generate").disabled=false;
+};
+
+/* ---------- WAV ---------- */
+
+$("wavBtn").onclick=()=>{
+
+ if(!wavBlob){
+
+  status.textContent=
+   "Generate speech first.";
+
+  return;
+ }
+
+ saveBlob(wavBlob,"wav");
+};
+
+/* ---------- MP3 ---------- */
+
+$("mp3Btn").onclick=async()=>{
+
+ $("mp3Btn").disabled=true;
+
+ await makeMP3();
+
+ $("mp3Btn").disabled=false;
+};
+
+/* ---------- OGG ---------- */
+
+$("oggBtn").onclick=async()=>{
+
+ $("oggBtn").disabled=true;
+
+ await makeOGG();
+
+ $("oggBtn").disabled=false;
+};
+
+/* ---------- CLEAR ---------- */
+
+$("clear").onclick=()=>{
+
+ audio.pause();
+ audio.removeAttribute("src");
+
+ if(audioURL)
+  URL.revokeObjectURL(audioURL);
+
+ audioURL=null;
+ samples=null;
+ wavBlob=null;
+ mp3Blob=null;
+ oggBlob=null;
+ lastParams=null;
+ currentTimestamp=null;
+
+ text.value="";
+
+ stats();
+
+ player.style.display="none";
+
+ status.textContent="Ready";
+};
+
+/* ---------- VOLUME ---------- */
+
+audio.onvolumechange=()=>{
+ volume.value=audio.volume;
+ $("volumeVal").textContent=
+  audio.volume.toFixed(2);
+};
+
+audio.volume=+volume.value;
+
+stats();
+
+/* ---------- PWA INSTALL ---------- */
+
+/* Register the service worker so the app shell works offline and the
+   browser considers this installable. Skipped harmlessly on file:// or
+   browsers without support — this never blocks the app from working. */
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+ window.addEventListener("load",()=>{
+  navigator.serviceWorker.register("sw.js").catch(e=>{
+   console.warn("Service worker registration failed:",e);
+  });
+ });
+}
+
+const installRow=$("installRow");
+const installBtn=$("installBtn");
+const iosInstallNote=$("iosInstallNote");
+
+const isStandalone=
+ window.matchMedia("(display-mode: standalone)").matches ||
+ window.navigator.standalone===true;
+
+let deferredInstallPrompt=null;
+
+/* Chrome/Edge/Android fire this once the installability criteria
+   (manifest + icons + service worker, all served over https) are met.
+   We stash it and only trigger it from our own button — calling
+   .prompt() requires this to have already fired, so the button stays
+   hidden until it does. */
+window.addEventListener("beforeinstallprompt",(e)=>{
+ e.preventDefault();
+ deferredInstallPrompt=e;
+ if(!isStandalone) installRow.style.display="block";
+});
+
+if(installBtn){
+ installBtn.onclick=async()=>{
+
+  if(!deferredInstallPrompt)return;
+
+  installBtn.disabled=true;
+
+  deferredInstallPrompt.prompt();
+
+  const choice=await deferredInstallPrompt.userChoice;
+
+  status.textContent=
+   choice.outcome==="accepted"
+    ? "✓ Installing Voicey..."
+    : "Install dismissed.";
+
+  deferredInstallPrompt=null;
+  installRow.style.display="none";
+  installBtn.disabled=false;
+ };
+}
+
+window.addEventListener("appinstalled",()=>{
+ installRow.style.display="none";
+ status.textContent="✓ Voicey installed.";
+});
+
+/* Safari (iOS/iPadOS) never fires beforeinstallprompt — "Add to Home
+   Screen" is a manual step under the Share icon. Surface that
+   explicitly rather than silently offering no way to install. */
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent) ||
+ (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+
+if(isIOS && !isStandalone){
+ iosInstallNote.style.display="block";
+}
+
+</script>
+</body>
+</html>
